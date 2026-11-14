@@ -161,8 +161,8 @@ canvas:active{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/200
   background:radial-gradient(ellipse at 50% 20%,color-mix(in srgb,var(--c) 45%,transparent),transparent 70%),linear-gradient(180deg,#0a1a28,#04090f);
   box-shadow:0 0 16px color-mix(in srgb,var(--c) 55%,transparent);clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,9px 100%,0 calc(100% - 9px))}
 .rcard .gem{width:22px;height:22px;background:var(--c);transform:rotate(45deg);box-shadow:0 0 12px var(--c)}
-.rcard b{font:700 8px var(--disp);letter-spacing:.06em;text-transform:uppercase;color:#fff}
-.rcard.sm{width:42px;height:56px;padding:8px 1px 5px;border-top:3px solid var(--p)}.rcard.sm .gem{width:15px;height:15px}.rcard.sm b{font-size:6.5px}
+.rcard b{font:700 7px var(--disp);letter-spacing:.02em;text-transform:uppercase;color:#fff;white-space:nowrap}
+.rcard.sm{width:42px;height:56px;padding:0;justify-content:center;border-top:3px solid var(--p)}.rcard.sm .gem{width:17px;height:17px}.rcard.sm b{display:none}
 .prow.flash{animation:chipflash .5s}
 .chip.flash{animation:chipflash .5s}
 @keyframes chipflash{0%{background:rgba(255,255,255,.5);transform:scale(1.14)}100%{background:rgba(53,224,255,.04);transform:none}}
@@ -2546,7 +2546,7 @@ let speed = 1; try { speed = +localStorage.getItem('hexlands.speed') || 1; } cat
 const T = ms => ms * (window.__speed || speed);                        // every wait and announcement runs through this (Speed button: Normal 1, Fast 0.45)
 const AUTO = location.search.includes('auto') || location.hash.includes('auto');                       // colony.html?auto : the bots play every seat (for testing)
 const G = L.createGame(X1923, { seed: 1 + Math.floor(Math.random() * 1e9) });
-window.__game = G; window.__dbg = { get hi() { return hi; }, get picking() { return picking; }, camera, renderer };
+window.__game = G; window.__dbg = { get hi() { return hi; }, get picking() { return picking; }, camera, renderer, test: { loss: (pid, dn, how) => lossAlert(G.players[pid], dn, how), fly: (pid, up) => flyCards(pid, up) } };
 const me = G.players[HUMAN];
 
 /* ---------- geometry shared by rules and art ---------- */
@@ -2965,9 +2965,9 @@ function toast(html, ms = 900, cls = '') {                                // sho
 }
 const tell = (html, ms = 1500) => { log(html); return toast(`<div class="tline">${html}</div>`, ms, 'small'); };
 /* your new resources as cards: they appear under the dice, then fly down into your dashboard */
-function flyCards(pid, up, row = 0, delay = 450) {                     // pid's new resources as a row of cards; yours fly to your dashboard, a rival's to their line in the colonies panel
+function flyCards(pid, up, top = 0, delay = 450) {                     // top: how far below the first row this row sits                     // pid's new resources as a row of cards; yours fly to your dashboard, a rival's to their line in the colonies panel
   const mine = pid === HUMAN, cards = Object.entries(up).flatMap(([r, n]) => Array(Math.min(n, 6)).fill(r)).slice(0, 12), layer = $('#fly');
-  const W = mine ? 58 : 42, Hh = mine ? 78 : 56, GAP = 8, x0 = innerWidth / 2 - (cards.length * (W + GAP) - GAP) / 2, y0 = innerHeight * 0.3 + 230 + row * 66;
+  const W = mine ? 58 : 42, Hh = mine ? 78 : 56, GAP = 8, x0 = innerWidth / 2 - (cards.length * (W + GAP) - GAP) / 2, y0 = innerHeight * 0.3 + 230 + top;
   cards.forEach((r, i) => {
     const el = document.createElement('div'); el.className = 'rcard' + (mine ? '' : ' sm'); el.style.cssText = `--c:${RES_COL[r]};--p:${PALETTES[pid].pc};left:${x0 + i * (W + GAP)}px;top:${y0}px`; el.innerHTML = `<span class="gem"></span><b>${RES_NAME[r]}</b>`; layer.appendChild(el);
     const target = mine ? $('#myres').children[G.RES.indexOf(r)] : $('#players').children[pid], box = target.getBoundingClientRect(), dx = box.left + box.width / 2 - (x0 + i * (W + GAP) + W / 2), dy = box.top + box.height / 2 - (y0 + Hh / 2);
@@ -3017,7 +3017,7 @@ function rollAlert(p, before, owe = 0) {                                        
     : ds.some(x => x.gain) ? `<div class="gains">${G.players.map(q => row(q, ds[q.id])).join('')}</div>` : '<div class="tline">No colony collects on this roll</div>';
   log(`${who(p)} rolled <b>${n}</b>${d.gain ? ' · you collect ' + d.gain : ''}${d.loss ? ' · you discard ' + d.loss : ''}`);
   const mine = n !== 7 && d.gain, t = toast(`<div class="thead">${p.id === HUMAN ? 'You roll' : who(p) + ' rolls'}</div><div class="dice">${dieHTML(a)}${dieHTML(n - a)}<b class="sum${n === 7 ? ' warn' : ''}">${n}</b></div>${body}`, mine ? 3200 : n === 7 ? 2500 : ds.some(x => x.gain) ? 3000 : 1500, 'roll');
-  if (n !== 7) { let row = 0; G.players.forEach(q => { if (ds[q.id].gain) flyCards(q.id, ds[q.id].up, row++, 450 + row * 120); }); }
+  if (n !== 7) { let top = 0, k = 0; G.players.forEach(q => { if (!ds[q.id].gain) return; flyCards(q.id, ds[q.id].up, top, 450 + k++ * 120); top += q.id === HUMAN ? 90 : 64; }); }   // one row of cards per colony, yours first and larger
   return t;
 }
 
