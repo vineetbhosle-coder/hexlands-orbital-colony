@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hexlands: Orbital Colony</title>
+<meta name="description" content="Four colony ships, one mineral world. Claim sectors, lay lanes, and grow outposts into arcologies before your rivals do. A 3D strategy game that plays in your browser.">
+<meta property="og:title" content="Hexlands: Orbital Colony">
+<meta property="og:description" content="Four colony ships, one mineral world. Claim sectors, lay lanes, and grow outposts into arcologies before your rivals do. A 3D strategy game that plays in your browser.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#05070d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2305070d'/%3E%3Cpath d='M32 8l21 12v24L32 56 11 44V20z' fill='none' stroke='%2335e0ff' stroke-width='5' stroke-linejoin='round'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%23ff5a14'/%3E%3C/svg%3E">
 <style>
 :root{--ink:#dff6ff;--muted:#7f9bb0;--line:rgba(120,200,255,.22);--card:rgba(8,14,24,.72);--accent:#35e0ff}
 *{box-sizing:border-box}
@@ -72,13 +78,32 @@ button .cost{display:block;margin-top:4px;line-height:0}
 #modal{left:50%;top:42%;transform:translate(-50%,-50%);padding:16px 18px;display:none;flex-direction:column;gap:12px;align-items:center;z-index:5}
 #mtitle{font:700 12px var(--disp);letter-spacing:.14em;text-transform:uppercase;color:var(--hud)}
 #over{position:fixed;inset:0;display:none;place-items:center;background:rgba(3,6,12,.66);z-index:6}
-#over .panel{position:relative;padding:26px 34px;text-align:center}
+#over .panel{position:relative;padding:26px 30px 22px;text-align:center;width:min(620px,calc(100vw - 32px))}
+#osub{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+#obody{margin-bottom:18px;text-align:left}
+.srow{display:grid;grid-template-columns:4px 1.4fr repeat(3,1fr) .8fr;gap:10px;align-items:center;padding:8px 10px 8px 0;border-bottom:1px solid var(--hud-faint);font-size:15px;font-weight:600}
+.srow span{text-align:center}.srow .nm{text-align:left;text-transform:uppercase;letter-spacing:.08em}
+.srow .bar{height:26px;background:var(--p);box-shadow:0 0 8px var(--p)}
+.srow .tot{font:700 20px var(--disp);color:#fff}
+.srow.head{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;padding-top:0}
+.srow.win{background:linear-gradient(90deg,color-mix(in srgb,var(--p) 22%,transparent),transparent)}
+/* choosing what to discard */
+#mtitle .count{margin-left:10px;font:700 14px var(--disp);color:#fff}
+.dsel{display:inline-flex;align-items:stretch;gap:3px}
+.dsel button{padding:4px 10px;font:700 15px var(--disp)}
+.dsel .chip small{color:var(--muted);font-size:11px;margin-left:3px}
+.dsel .chip.sel{border-color:#ffa245;background:rgba(255,162,69,.14)}
+#modal{max-width:min(720px,calc(100vw - 32px))}
+/* the start button waits for the board */
+#start:disabled{opacity:.8;background:transparent;color:var(--hud);border-color:var(--hud-dim);animation:waiting 1.2s ease-in-out infinite alternate}
+@keyframes waiting{from{opacity:.45}to{opacity:.95}}
 #over h1{margin:0 0 12px;font:900 24px var(--disp);letter-spacing:.12em;text-transform:uppercase;color:var(--hud);text-shadow:0 0 14px var(--hud)}
 #help{left:14px;top:240px;width:268px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 #help .hint{flex:1 0 100%;line-height:1.3}
 #help button{flex:1 1 auto;margin:0!important}
 #fit{padding:4px 9px!important;font-size:11px!important;margin-right:8px}
-@media (max-width:900px){#log,#help{display:none}#status{max-width:62vw}}
+/* narrow windows: the log goes, the buttons stay, and the status bar moves clear of the colonies panel */
+@media (max-width:900px){#log{display:none}#help .hint{display:none}#status{left:296px;right:14px;margin:0;width:auto;max-width:none;justify-content:center}}
 /* cards: the hover card for every menu item, map piece and chance card; small versions sit in your hand */
 #tip{position:fixed;display:none;z-index:8;pointer-events:none}
 .card{width:236px;padding:0 14px 12px;border:1px solid var(--acc);color:var(--ink);
@@ -159,7 +184,7 @@ canvas:active{cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/200
 #start{font-size:16px;padding:12px 30px}
 body:not(.playing) #score,body:not(.playing) #status,body:not(.playing) #log,body:not(.playing) #hand,body:not(.playing) #help{opacity:0;pointer-events:none}
 #score,#status,#log,#hand,#help{transition:opacity .5s}
-#rules,#restart{padding:4px 9px!important;font-size:11px!important;margin-right:8px}
+#rules,#restart,#speed{padding:4px 9px!important;font-size:11px!important;margin-right:8px}
 #restart.sure{background:#ffa245;color:#1c0d00;border-color:#ffa245}
 </style>
 <div id="score" class="panel"><h2>Colonies · first to <span id="goal">11</span></h2><div id="players"></div></div>
@@ -195,11 +220,11 @@ body:not(.playing) #score,body:not(.playing) #status,body:not(.playing) #log,bod
   </ol></div>
   <div class="tabpage" id="tab-costs" style="display:none"><div id="costs"></div><p style="margin-top:10px">You have 15 lanes, 5 outposts, 4 habitats and 3 arcologies. Growing a settlement returns the smaller piece to your supply. The colony in last place takes one free resource at the start of each round.</p></div>
   <div class="tabpage" id="tab-cards" style="display:none"><div id="deckinfo"></div><p style="margin-top:10px">You may play one chance card per turn, and not on the turn you bought it.</p></div>
-  <div class="foot"><span style="color:var(--muted);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase">You against three rival colonies · about 20 minutes</span><button id="start" class="primary">Begin landing</button></div>
+  <div class="foot"><span style="color:var(--muted);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase">You against three rival colonies · about 20 minutes</span><button id="start" class="primary" disabled>Preparing the landing site…</button></div>
 </div></div>
 <div id="modal" class="panel"><div id="mtitle"></div><div class="row" id="mopts"></div></div>
-<div id="help" class="panel"><button id="fit">Whole board</button><button id="rules">Rules</button><button id="restart">New game</button><span class="hint">Left-drag: rotate · right-drag: move · scroll: zoom</span></div>
-<div id="over"><div class="panel"><h1 id="otitle"></h1><div id="obody" style="margin-bottom:14px;font-size:13px;line-height:1.6"></div><button class="primary" onclick="location.reload()">New game</button></div></div>
+<div id="help" class="panel"><button id="fit">Whole board</button><button id="rules">Rules</button><button id="restart">New game</button><button id="speed">Speed: normal</button><span class="hint">Left-drag: rotate · right-drag: move · scroll: zoom</span></div>
+<div id="over"><div class="panel"><h1 id="otitle"></h1><div id="osub"></div><div id="obody"></div><div class="row"><button class="primary" onclick="location.reload()">Play again</button><button id="oview">View the board</button></div></div></div>
 
 <script>(function(){ const module = { exports: {} };
 /* Abstract economy engine for design search (simulation only, no graphics).
@@ -2517,6 +2542,8 @@ const RES_COL = { r1: '#7fd4ff', r2: '#ff9a5c', r3: '#ffe27a', r4: '#d9c3a0', r5
 const CARD_NAME = { guard: 'Storm beacon', point: 'Breakthrough', roads: 'Lane crew', harvest: 'Supply drop', claim: 'Requisition' };
 const CARD_HELP = { guard: 'Move the solar storm and take a card from someone next to it', roads: 'Build 2 lanes for free', harvest: 'Take any 2 resources', claim: 'Name a resource: every rival hands you all of theirs' };
 const NAMES = ['You', 'Vega', 'Orion', 'Lyra'], HUMAN = 0, BOARD_Y = -0.06;
+let speed = 1; try { speed = +localStorage.getItem('hexlands.speed') || 1; } catch (e) { /* storage unavailable: normal speed */ }
+const T = ms => ms * (window.__speed || speed);                        // every wait and announcement runs through this (Speed button: Normal 1, Fast 0.45)
 const AUTO = location.search.includes('auto') || location.hash.includes('auto');                       // colony.html?auto : the bots play every seat (for testing)
 const G = L.createGame(X1923, { seed: 1 + Math.floor(Math.random() * 1e9) });
 window.__game = G; window.__dbg = { get hi() { return hi; }, get picking() { return picking; }, camera, renderer };
@@ -2795,7 +2822,7 @@ function extractFx(n) {                                                  // the 
     const col = RES_COL[t.res], tx = (moteTex[col] = moteTex[col] || lightTex(col));
     t.vids.map(id => G.verts[id]).filter(v => v.level).forEach((v, vi) => { for (let k = 0, K = X1923.levels[v.level - 1].prod * 3; k < K; k++) {
       const m = new THREE.Mesh(hiGeo, new THREE.MeshBasicMaterial({ map: tx, transparent: true, blending: THREE.AdditiveBlending, depthTest: false, depthWrite: false, toneMapped: false })); m.visible = false; overlay.add(m);
-      motes.push({ m, a: P(t.x + rnd(-0.25, 0.25), TOP + BOARD_Y + 0.08, t.z + rnd(-0.25, 0.25)), b: P(v.x, H + BOARD_Y + 0.22, v.z), t0: nowS() + 0.5 + vi * 0.12 + k * 0.11, dur: 1.0, lift: rnd(0.35, 0.6) });
+      motes.push({ m, a: P(t.x + rnd(-0.25, 0.25), TOP + BOARD_Y + 0.08, t.z + rnd(-0.25, 0.25)), b: P(v.x, H + BOARD_Y + 0.22, v.z), t0: nowS() + T(500 + vi * 120 + k * 110) / 1000, dur: 1.0, lift: rnd(0.35, 0.6) });
     } });
   }
 }
@@ -2934,7 +2961,7 @@ let toastT = 0;
 function toast(html, ms = 900, cls = '') {                                // shows for ms, resolves when it is gone
   const el = $('#toast'); clearTimeout(toastT); el.className = 'panel ' + cls; el.innerHTML = html; el.style.display = 'flex';
   el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
-  return new Promise(r => { toastT = setTimeout(() => { el.style.display = 'none'; r(); }, ms); });
+  return new Promise(r => { toastT = setTimeout(() => { el.style.display = 'none'; r(); }, T(ms)); });
 }
 const tell = (html, ms = 1500) => { log(html); return toast(`<div class="tline">${html}</div>`, ms, 'small'); };
 /* your new resources as cards: they appear under the dice, then fly down into your dashboard */
@@ -2944,8 +2971,8 @@ function flyCards(pid, up, row = 0, delay = 450) {                     // pid's 
   cards.forEach((r, i) => {
     const el = document.createElement('div'); el.className = 'rcard' + (mine ? '' : ' sm'); el.style.cssText = `--c:${RES_COL[r]};--p:${PALETTES[pid].pc};left:${x0 + i * (W + GAP)}px;top:${y0}px`; el.innerHTML = `<span class="gem"></span><b>${RES_NAME[r]}</b>`; layer.appendChild(el);
     const target = mine ? $('#myres').children[G.RES.indexOf(r)] : $('#players').children[pid], box = target.getBoundingClientRect(), dx = box.left + box.width / 2 - (x0 + i * (W + GAP) + W / 2), dy = box.top + box.height / 2 - (y0 + Hh / 2);
-    el.animate([{ transform: 'translateY(26px) scale(.5)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 260, delay: delay + i * 70, easing: 'cubic-bezier(.2,1.5,.4,1)', fill: 'both' });
-    el.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${dx}px,${dy}px) scale(.28)`, opacity: 0.3 }], { duration: 620, delay: delay + 1200 + i * 70, easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' }).onfinish = () => { el.remove(); const c = mine ? $('#myres').children[G.RES.indexOf(r)] : $('#players').children[pid]; if (c) { c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); } };
+    el.animate([{ transform: 'translateY(26px) scale(.5)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 260, delay: T(delay + i * 70), easing: 'cubic-bezier(.2,1.5,.4,1)', fill: 'both' });
+    el.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${dx}px,${dy}px) scale(.28)`, opacity: 0.3 }], { duration: T(620), delay: T(delay + 1200 + i * 70), easing: 'cubic-bezier(.5,0,.8,.4)', fill: 'forwards' }).onfinish = () => { el.remove(); const c = mine ? $('#myres').children[G.RES.indexOf(r)] : $('#players').children[pid]; if (c) { c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); } };
   });
 }
 /* a rival has taken resources from you: say so in the middle of the screen, and send the cards from your dashboard to their panel */
@@ -2953,19 +2980,40 @@ function lossAlert(p, dn, how) {
   const cards = Object.entries(dn).flatMap(([r, n]) => Array(Math.min(n, 8)).fill(r)).slice(0, 12), layer = $('#fly'), to = $('#players').children[p.id].getBoundingClientRect();
   cards.forEach((r, i) => {
     const from = $('#myres').children[G.RES.indexOf(r)].getBoundingClientRect(), el = document.createElement('div'); el.className = 'rcard sm'; el.style.cssText = `--c:${RES_COL[r]};--p:${PALETTES[p.id].pc};left:${from.left + from.width / 2 - 21}px;top:${from.top - 62}px`; el.innerHTML = `<span class="gem"></span><b>${RES_NAME[r]}</b>`; layer.appendChild(el);
-    el.animate([{ transform: 'translateY(40px) scale(.4)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, delay: 300 + i * 90, easing: 'cubic-bezier(.2,1.5,.4,1)', fill: 'both' });
-    el.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${to.left + to.width / 2 - (from.left + from.width / 2)}px,${to.top + to.height / 2 - (from.top - 34)}px) scale(.3)`, opacity: 0.3 }], { duration: 800, delay: 1300 + i * 90, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' }).onfinish = () => { el.remove(); const c = $('#players').children[p.id]; if (c) { c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); } };
+    el.animate([{ transform: 'translateY(40px) scale(.4)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, delay: T(300 + i * 90), easing: 'cubic-bezier(.2,1.5,.4,1)', fill: 'both' });
+    el.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${to.left + to.width / 2 - (from.left + from.width / 2)}px,${to.top + to.height / 2 - (from.top - 34)}px) scale(.3)`, opacity: 0.3 }], { duration: T(800), delay: T(1300 + i * 90), easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' }).onfinish = () => { el.remove(); const c = $('#players').children[p.id]; if (c) { c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); } };
     const chip = $('#myres').children[G.RES.indexOf(r)]; chip.classList.remove('lost'); void chip.offsetWidth; chip.classList.add('lost');
   });
   log(`${who(p)} took <b>${listRes(dn)}</b> from you ${how}`);
   return toast(`<div class="thead warn">Resources taken</div><div class="tline">${who(p)} took <b>${listRes(dn)}</b> from you</div><div class="tsub">${how}</div>`, 2800, 'loss');
 }
-function rollAlert(p, before) {                                         // the dice, whose roll it was, and what every colony received
+/* On a 7 the rules engine discards at random for everyone. Yours are handed back so you can choose which to give up. */
+function reclaimDiscards(all0) {
+  if (G.lastRoll !== 7 || AUTO) return 0;
+  const dn = diff(all0[HUMAN], me.res).dn, n = Object.values(dn).reduce((a, b) => a + b, 0);
+  for (const r in dn) me.res[r] += dn[r];
+  return n;
+}
+function chooseDiscard(n) {
+  return new Promise(res => {
+    const out = Object.fromEntries(G.RES.map(r => [r, 0])), count = () => Object.values(out).reduce((a, b) => a + b, 0);
+    picking = () => {}; hud(); $('#modal').style.display = 'flex';
+    const draw = () => {
+      const k = count();
+      $('#mtitle').innerHTML = `Solar storm · discard ${n} of your ${L.total(me)} resources <span class="count">${k} / ${n}</span>`;
+      $('#mopts').innerHTML = G.RES.filter(r => me.res[r] > 0).map(r => `<span class="dsel"><button data-d="${r}" data-s="-1" ${out[r] ? '' : 'disabled'} aria-label="Keep one ${RES_NAME[r]}">−</button><span class="chip${out[r] ? ' sel' : ''}">${sw(r)}${RES_NAME[r]} <b>${out[r]}</b><small>of ${me.res[r]}</small></span><button data-d="${r}" data-s="1" ${out[r] < me.res[r] && k < n ? '' : 'disabled'} aria-label="Discard one ${RES_NAME[r]}">+</button></span>`).join('') + `<button class="primary" id="dok" ${k === n ? '' : 'disabled'}>Discard ${n}</button>`;
+      $('#mopts').querySelectorAll('[data-d]').forEach(b => (b.onclick = () => { out[b.dataset.d] += +b.dataset.s; draw(); }));
+      $('#dok').onclick = () => { for (const r of G.RES) me.res[r] -= out[r]; $('#modal').style.display = 'none'; picking = null; log(`You discarded ${listRes(out)}`); hud(); res(); };
+    };
+    draw();
+  });
+}
+function rollAlert(p, before, owe = 0) {                                         // the dice, whose roll it was, and what every colony received
   if (G.lastRoll !== 7) extractFx(G.lastRoll);
   const n = G.lastRoll, a = Math.max(1, n - 6) + Math.floor(Math.random() * (Math.min(6, n - 1) - Math.max(1, n - 6) + 1));
   const ds = G.players.map((q, i) => diff(before[i], q.res)), d = ds[HUMAN];
   const row = (q, dd) => `<div class="gain"><span class="sw" style="background:${PALETTES[q.id].pc};color:${PALETTES[q.id].pc}"></span><b>${q.id === HUMAN ? 'You' : NAMES[q.id]}</b><span>${Object.entries(n === 7 ? dd.dn : dd.up).map(([r, k]) => `${sw(r)}${n === 7 ? '−' : '+'}${k}`).join(' ') || '<i>nothing</i>'}</span></div>`;
-  const body = n === 7 ? `<div class="tline warn">Solar storm! Nothing is collected.</div>${ds.some(x => x.loss) ? '<div class="gains">' + G.players.filter((q, i) => ds[i].loss).map(q => row(q, ds[q.id])).join('') + '</div>' : ''}`
+  const body = n === 7 ? `<div class="tline warn">Solar storm! Nothing is collected.</div>${owe ? `<div class="tline">You hold more than 7: choose <b>${owe}</b> to discard</div>` : ''}${ds.some(x => x.loss) ? '<div class="gains">' + G.players.filter((q, i) => ds[i].loss).map(q => row(q, ds[q.id])).join('') + '</div>' : ''}`
     : ds.some(x => x.gain) ? `<div class="gains">${G.players.map(q => row(q, ds[q.id])).join('')}</div>` : '<div class="tline">No colony collects on this roll</div>';
   log(`${who(p)} rolled <b>${n}</b>${d.gain ? ' · you collect ' + d.gain : ''}${d.loss ? ' · you discard ' + d.loss : ''}`);
   const mine = n !== 7 && d.gain, t = toast(`<div class="thead">${p.id === HUMAN ? 'You roll' : who(p) + ' rolls'}</div><div class="dice">${dieHTML(a)}${dieHTML(n - a)}<b class="sum${n === 7 ? ' warn' : ''}">${n}</b></div>${body}`, mine ? 3200 : n === 7 ? 2500 : ds.some(x => x.gain) ? 3000 : 1500, 'roll');
@@ -2980,15 +3028,19 @@ $('#deckinfo').innerHTML = ['guard', 'point', 'roads', 'harvest', 'claim'].map(k
 $('#rivals').innerHTML = G.players.map(p => `<span class="chip"><span class="sw" style="background:${PALETTES[p.id].pc};color:${PALETTES[p.id].pc}"></span>${p.id === HUMAN ? 'You' : NAMES[p.id]}</span>`).join('');
 document.querySelectorAll('[data-tab]').forEach(b => (b.onclick = () => { document.querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('on', x === b)); document.querySelectorAll('.tabpage').forEach(pg => (pg.style.display = pg.id === 'tab-' + b.dataset.tab ? 'block' : 'none')); }));
 let started = false;
-const homeScreen = () => new Promise(r => { $('#start').onclick = () => { $('#home2').style.display = 'none'; document.body.classList.add('playing'); if (!started) { started = true; r(); } }; });
+const homeScreen = () => new Promise(r => { const b = $('#start'); b.disabled = false; b.textContent = 'Begin landing'; b.onclick = () => { $('#home2').style.display = 'none'; document.body.classList.add('playing'); if (!started) { started = true; r(); } }; });
 $('#rules').onclick = () => { $('#start').textContent = 'Back to the game'; $('#home2').style.display = 'grid'; };
+{ // Speed: how long rival moves and announcements stay up
+  const b = $('#speed'), show = () => { b.textContent = speed < 1 ? 'Speed: fast' : 'Speed: normal'; b.classList.toggle('on', speed < 1); };
+  b.onclick = () => { speed = speed < 1 ? 1 : 0.45; try { localStorage.setItem('hexlands.speed', speed); } catch (e) { /* not saved */ } show(); }; show();
+}
 { // New game: a second press within a few seconds confirms, so a stray click never throws a game away
   const b = $('#restart'); let armed = 0;
   b.onclick = () => { if (b.classList.contains('sure')) return location.reload(); b.classList.add('sure'); b.textContent = 'Restart? Press again'; clearTimeout(armed); armed = setTimeout(() => { b.classList.remove('sure'); b.textContent = 'New game'; }, 3500); };
 }
 
 /* ---------- turns ---------- */
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+const sleep = ms => new Promise(r => setTimeout(r, T(ms)));
 const after = () => { sync(); hud(); };
 async function stormMove(p, human) {                                   // someone moves the storm; say what it cost you
   const before = { ...me.res };
@@ -3025,7 +3077,7 @@ async function botTurn(p) {
   if (G.over) return;
   const all0 = G.players.map(q => ({ ...q.res })); L.roll(G); $('#dice').textContent = G.lastRoll;
   let d;
-  hud(); await rollAlert(p, all0);
+  const owe = reclaimDiscards(all0); hud(); await rollAlert(p, all0, owe); if (owe) await chooseDiscard(owe);
   if (G.pending) await stormMove(p, false);
   after(); await sleep(500);
   for (let i = 0; i < 30 && !G.over; i++) {
@@ -3070,7 +3122,7 @@ async function humanTurn() {
     const a = await new Promise(r => { act = r; hud(); });
     if (a === 'roll') {
       const all0 = G.players.map(q => ({ ...q.res })); L.roll(G); rolled = true; $('#dice').textContent = G.lastRoll;
-      hud(); await rollAlert(me, all0);
+      const owe = reclaimDiscards(all0); hud(); await rollAlert(me, all0, owe); if (owe) await chooseDiscard(owe);
       if (G.pending) await stormMove(me, true);
     } else if (a === 'end') { break; }
     else if (a === 'road') { const id = await pickOne('edge', L.roadSpots(G, me).map(e => e.id), 'Pick an edge for the lane'); if (id !== null) { L.build(G, 'road', id); log(`${who(me)} built a lane`); } }
@@ -3096,15 +3148,24 @@ async function play() {
     if (G.over) break;
     const before = G.players.map(q => ({ ...q.res }));
     L.endTurn(G);
-    if (G.cur === 0) G.players.forEach((q, i) => { const d = diff(before[i], q.res); if (d.gain) log(`Underdog bonus: ${who(q)} ${q.id === HUMAN ? 'take ' + d.gain : 'takes a card'}`); });
+    if (G.cur === 0) for (const q of G.players) {                     // start of a round: whoever is last takes one resource
+      const d = diff(before[q.id], q.res); if (!d.gain) continue;
+      if (q.id === HUMAN && !AUTO) { me.res[Object.keys(d.up)[0]]--; hud(); const r = await chooseRes('Underdog bonus · you are in last place, take one resource', G.RES, false); me.res[r]++; log(`Underdog bonus: you take 1 ${RES_NAME[r]}`); hud(); flyCards(HUMAN, { [r]: 1 }, 0, 0); await sleep(900); }
+      else { after(); await tell(`Underdog bonus: ${who(q)} takes a resource`, 1200); }
+    }
     after();
   }
-  after(); say('Game over');
-  const order = G.players.slice().sort((a, b) => L.vp(G, b) - L.vp(G, a));
-  $('#otitle').textContent = G.winner === HUMAN ? 'You win!' : G.winner === null ? 'Game stalled' : NAMES[G.winner] + ' wins';
-  $('#obody').innerHTML = order.map(p => `${who(p)} · ${L.vp(G, p)} points`).join('<br>');
+  after(); say('Game over'); myTurn = false; hud();
+  const order = G.players.slice().sort((a, b) => L.vp(G, b) - L.vp(G, a)), w = G.winner === null ? null : G.players[G.winner];
+  const part = p => ({ build: p.vids.reduce((t, id) => t + X1923.levels[G.verts[id].level - 1].vp, 0), lane: G.roadHolder === p.id ? X1923.roadPoints : 0, cards: p.points });
+  if (w) { for (const id of w.vids) { const v = G.verts[id]; ping(v.x, v.z, PALETTES[w.id].pc, 0.9); } await toast(`<div class="thead">${w.id === HUMAN ? 'Your colony' : who(w)} reaches ${L.vp(G, w)} points</div>`, 1800, 'mine'); }
+  $('#otitle').textContent = !w ? 'The game stalled' : w.id === HUMAN ? 'You founded the capital' : `${NAMES[w.id]} founded the capital`;
+  $('#otitle').style.color = w ? PALETTES[w.id].pc : ''; $('#otitle').style.textShadow = w ? `0 0 16px ${PALETTES[w.id].pc}` : '';
+  $('#osub').textContent = `${Math.ceil(G.turn / G.n)} rounds · first to ${G.win} points`;
+  $('#obody').innerHTML = `<div class="srow head"><span></span><span>Colony</span><span>Settlements</span><span>Longest lane</span><span>Breakthroughs</span><span>Total</span></div>` + order.map(p => { const x = part(p); return `<div class="srow${p === w ? ' win' : ''}" style="--p:${PALETTES[p.id].pc}"><span class="bar"></span><span class="nm">${p.id === HUMAN ? 'You' : NAMES[p.id]}</span><span>${x.build}</span><span>${x.lane || '–'}</span><span>${x.cards || '–'}</span><span class="tot">${L.vp(G, p)}</span></div>`; }).join('');
   $('#over').style.display = 'grid';
 }
+$('#oview').onclick = () => { $('#over').style.display = 'none'; say('Game over · press New game to play again'); };
 $('#goal').textContent = G.win;
 sync(); hud();
 play().catch(e => { say('Error: ' + e.message); console.error(e); });
